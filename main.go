@@ -19,11 +19,16 @@ func main() {
 	mux := http.NewServeMux()
 
 	middlewareApiInstance := (*middleware.LocalConf)(apiConfig)
+
+	// /app/
 	mux.Handle("/app/", middlewareApiInstance.MiddlewareFileserverHits(apiConfig.HandlerApp()))
+
+	// /api/
+	mux.HandleFunc("GET /api/healthz", apiConfig.HandlerReadiness)
 	
-	mux.HandleFunc("GET /healthz", apiConfig.HandlerReadiness)
-	mux.HandleFunc("GET /metrics", apiConfig.HandlerMetrics)
-	mux.HandleFunc("POST /reset", apiConfig.HandlerReset)
+	// /admin/
+	mux.HandleFunc("GET /admin/metrics", apiConfig.HandlerMetrics)
+	mux.HandleFunc("POST /admin/reset", apiConfig.HandlerReset)
 
 	srv := &http.Server{
 		Addr:    ":" + apiConfig.Port,
