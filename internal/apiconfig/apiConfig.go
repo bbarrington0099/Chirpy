@@ -1,4 +1,4 @@
-package apiConfig
+package apiconfig
 
 import (
 	"sync/atomic"

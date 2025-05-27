@@ -3,12 +3,14 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/bbarrington0099/Chirpy/internal/apiConfig"
+	"github.com/bbarrington0099/Chirpy/internal/apiconfig"
 )
 
-func (api *apiConfig.Conf) middlewareFileserverHits(next http.Handler) http.Handler {
+type LocalConf apiconfig.Conf
+
+func (api *LocalConf) MiddlewareFileserverHits(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		api.FileserverHits.Add(1)
+		(*apiconfig.Conf)(api).FileserverHits.Add(1)
 		next.ServeHTTP(w, r)
 	})
 }

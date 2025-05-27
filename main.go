@@ -5,18 +5,22 @@ import (
 	"net/http"
 	"sync/atomic"
 	
-	"github.com/bbarrington0099/Chirpy/internal/apiConfig"
+	"github.com/bbarrington0099/Chirpy/internal/apiconfig"
+	"github.com/bbarrington0099/Chirpy/internal/middleware"
 )
 
 func main() {
-	apiConfig := &apiConfig.Conf{
+	apiConfig := &apiconfig.Conf{
 		Port:         "8080",
 		FilepathRoot: ".",
 		FileserverHits: atomic.Int32{},
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/app/", apiConfig.middlewareFileserverHits(apiConfig.HandlerApp()))
+
+	middlewareApiInstance := (*middleware.LocalConf)(apiConfig)
+	mux.Handle("/app/", middlewareApiInstance.MiddlewareFileserverHits(apiConfig.HandlerApp()))
+	
 	mux.HandleFunc("GET /healthz", apiConfig.HandlerReadiness)
 	mux.HandleFunc("GET /metrics", apiConfig.HandlerMetrics)
 	mux.HandleFunc("POST /reset", apiConfig.HandlerReset)
