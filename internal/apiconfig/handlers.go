@@ -73,18 +73,68 @@ func (api *Conf) HandlerReset(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+type UserResponse struct {
+	ID uuid.UUID `json:"id"`
+	Email string `json:"email"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+func (api *Conf) HandlerCreateUser(w http.ResponseWriter, r *http.Request) {
+	type userRequest struct {
+		Email string `json:"email"`
+	}
+
+	userArgs := userRequest{}
+	if err := json.NewDecoder(r.Body).Decode(&userArgs); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, err := w.Write([]byte(`{"error": "Invalid request body"}`))
+		if err != nil {
+			log.Printf("Error writing error response: %v", err)
+		}
+		return
+	}
+
+	if userArgs.Email == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, err := w.Write([]byte(`{"error": "Email is required"}`))
+		if err != nil {
+			log.Printf("Error writing error response: %v", err)
+		}
+		return
+	}
+
+	user, err := api.QueryCollection.CreateUser(r.Context(), userArgs.Email)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Printf("Error creating user: %v", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusCreated)
+	userResponse := UserResponse{
+		ID:        user.ID,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt: user.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
+	response, _ := json.Marshal(userResponse)
+	w.Write(response)
+}
+
+type ChirpResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Body      string    `json:"body"`
+	UserID    uuid.UUID `json:"user_id"`
+	CreatedAt string    `json:"created_at"`
+	UpdatedAt string    `json:"updated_at"`
+}
+
 func (api *Conf) HandlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Chirp string `json:"body"`
 		User uuid.UUID `json:"user_id"`
-	}
-
-	type ChirpResponse struct {
-		ID        uuid.UUID `json:"id"`
-		Body      string    `json:"body"`
-		UserID    uuid.UUID `json:"user_id"`
-		CreatedAt string    `json:"created_at"`
-		UpdatedAt string    `json:"updated_at"`
 	}
 
 	profaneWords := []string{
@@ -157,64 +207,6 @@ func (api *Conf) HandlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-}
-
-func (api *Conf) HandlerCreateUser(w http.ResponseWriter, r *http.Request) {
-	type userRequest struct {
-		Email string `json:"email"`
-	}
-
-	type UserResponse struct {
-		ID uuid.UUID `json:"id"`
-		Email string `json:"email"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-	}
-
-	userArgs := userRequest{}
-	if err := json.NewDecoder(r.Body).Decode(&userArgs); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_, err := w.Write([]byte(`{"error": "Invalid request body"}`))
-		if err != nil {
-			log.Printf("Error writing error response: %v", err)
-		}
-		return
-	}
-
-	if userArgs.Email == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_, err := w.Write([]byte(`{"error": "Email is required"}`))
-		if err != nil {
-			log.Printf("Error writing error response: %v", err)
-		}
-		return
-	}
-
-	user, err := api.QueryCollection.CreateUser(r.Context(), userArgs.Email)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Printf("Error creating user: %v", err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusCreated)
-	userResponse := UserResponse{
-		ID:        user.ID,
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt: user.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	}
-	response, _ := json.Marshal(userResponse)
-	w.Write(response)
-}
-
-type ChirpResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Body      string    `json:"body"`
-	UserID    uuid.UUID `json:"user_id"`
-	CreatedAt string    `json:"created_at"`
-	UpdatedAt string    `json:"updated_at"`
 }
 
 func (api *Conf) HandlerGetChirps(w http.ResponseWriter, r *http.Request) {
